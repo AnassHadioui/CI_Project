@@ -6,6 +6,13 @@ pipeline {
     }
 
     stages {
+
+        stage('Nettoyage Workspace') {
+            steps {
+                deleteDir()
+            }
+        }
+
         stage('Clonage') {
             steps {
                 git branch: 'main',
@@ -54,7 +61,27 @@ pipeline {
                 '''
 
                 archiveArtifacts artifacts: 'Release.zip',
-                                fingerprint: true
+                                 fingerprint: true
+            }
+        }
+
+        stage("Publication de l'artefact") {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'nexus-credentials',
+                        usernameVariable: 'NEXUS_USER',
+                        passwordVariable: 'NEXUS_PASSWORD'
+                    )
+                ]) {
+                    bat '''
+                        @echo off
+                        curl.exe --fail --show-error ^
+                            -u "%NEXUS_USER%:%NEXUS_PASSWORD%" ^
+                            --upload-file Release.zip ^
+                            http://localhost:8081/repository/python-release/Release.zip
+                    '''
+                }
             }
         }
     }
