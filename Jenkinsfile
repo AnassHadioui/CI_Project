@@ -34,7 +34,27 @@ pipeline {
 
         stage('Tests unitaires') {
             steps {
-                bat 'python -m pytest -v'
+                bat 'python -m pytest -v --ignore=Release'
+            }
+        }
+
+        stage("Creation de l'artefact") {
+            steps {
+                bat '''
+                    if exist Release rmdir /S /Q Release
+                    if exist Release.zip del /Q Release.zip
+
+                    mkdir Release
+
+                    copy calculator.py Release
+                    copy test_calculator.py Release
+                    copy requirements.txt Release
+
+                    powershell -Command "Compress-Archive -Path Release/* -DestinationPath Release.zip -Force"
+                '''
+
+                archiveArtifacts artifacts: 'Release.zip',
+                                fingerprint: true
             }
         }
     }
